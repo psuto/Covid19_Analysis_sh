@@ -3,6 +3,7 @@ import gps.preproces_Covid_gps as ppC
 import numpy as np
 import pandas as pd
 import pathlib as pl
+import FO2_PO2_analysis
 
 class ProcessingStrategy01():
     def __init__(self, dfs, dates2Convert, filesDict):
@@ -87,17 +88,20 @@ class ProcessingStrategy01():
         patient_events_list = list(events_df.loc[(events_df['STUDY_ID'] == STUDY_ID), 'EVENT_TYPE'].values)
 
         events_list = ['C5', 'INVASIVE VENTILATION', 'ITU', 'NIV']
-        event_start_date_list = ['C5_start_date', 'INVASIVE VENTILATION_start_date', 'ITU_date_start_date', 'NIV_date_start_date']
-        event_end_date_list = ['C5_start_date', 'INVASIVE VENTILATION_start_date', 'ITU_date_start_date',
-                                 'NIV_date_start_date']
+        event_start_date_list = ['C5_start_date', 'INVASIVE VENTILATION_start_date', 'ITU_start_date', 'NIV_start_date']
 
-        for event,eDate in zip(events_list,event_start_date_list):
+        event_end_date_list = ['C5_end_date', 'INVASIVE VENTILATION_end_date', 'ITU_end_date',
+                               'NIV_end_date']
+
+        for event,eStartDate,eEndDate in zip(events_list,event_start_date_list,event_end_date_list):
             dict_[event] = 0
             if event in patient_events_list:
                 dict_[event] = 1
-                mapEvent = ((events_df['STUDY_ID'] == 'STUDY_ID') & (events_df['EVENT_TYPE']==event))
-                eStartDate = events_df.loc[mapEvent, 'START_DATETIME'].unique()
-                dict_[eDate] = eStartDate
+                mapEvent = ((events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE']==event))
+                eStartDateV = events_df.loc[mapEvent, 'START_DATETIME'].unique()
+                eEndDateV = events_df.loc[mapEvent, 'END_DATETIME'].unique()
+                dict_[eStartDate] = eStartDateV[0]
+                dict_[eEndDate] = eEndDateV[0]
         return dict_
 
     def transformAdditionalInformation(self):
@@ -129,6 +133,7 @@ class ProcessingStrategy01():
         dfFO2P02_summary = self.getMeasures(dfFO2P02,'')
         eventColSel = ['STUDY_ID', 'Hospital_Days', 'ICU_Days']
         # df2 = df1.loc[:, eventColSel]
+        self.getRelativeDates(df1,dfFO2P02)
         dfRes = pd.merge(dfFO2P02, df1, on='STUDY_ID', how='inner')
         return dfRes
 
@@ -149,6 +154,21 @@ class ProcessingStrategy01():
     def getMeasures(self, df, colName):
         pass
 
+    def getRelativeDates(self, dfEvents, dfFO2P02):
+        indexColName = 'STUDY_ID'
+        ids = dfEvents[indexColName].unique()
+        # Index(['STUDY_ID', 'GENDER', 'ETHNIC_GROUP', 'IS_PREGNANT', 'PATIENT_AGE',
+        #        'ADM_DATETIME', 'DISCHARGE_DATE', 'hosp_start', 'icu_start', 'ICU_Days',
+        #        'Hospital_Days', 'C5', 'INVASIVE VENTILATION', 'ITU', 'NIV',
+        #        'ITU_date_start_date', 'ITU_date_end_date', 'NIV_date_start_date',
+        #        'NIV_date_end_date', 'C5_start_date', 'C5_end_date'],
+        #       dtype='object')
+        for id in ids:
+            if dfEvents['NIV'] == 1:
+                nivDate = dfEvents[dfEvents[indexColName]==id].loc[:, 'NIV_date_start_date']
+
+            pass
+
 
 def main():
     dirPath = "C:\work\dev\dECMT_src\data_all\COVID19_Data\Current"
@@ -161,7 +181,7 @@ def main():
     df = processor.process()
     df.to_csv(pl.Path(dirPath)/f'po2_fo2_data{u.timeStampStr}.csv')
 
-    pass
+    print("Finished !!!")
     # pO2_fo2Signs.drop(['VALUE', 'PARAMETER'], axis=1, inplace=True)
     # ============================================
 
