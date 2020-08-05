@@ -3,7 +3,7 @@ import gps.preproces_Covid_gps as ppC
 import numpy as np
 import pandas as pd
 import pathlib as pl
-import FO2_PO2_analysis
+import PO2_FO2_analysis
 
 class ProcessingStrategy01():
     def __init__(self, dfs, dates2Convert, filesDict):
@@ -172,12 +172,12 @@ class ProcessingStrategy01():
 
 def main():
     dirPath = "C:\work\dev\dECMT_src\data_all\COVID19_Data\Current"
-    dates2Convert = u.dates2Convert
+    dates2Convert = u.timeVariables2Convert
     filesDict = u.filesDict
     dfs = u.readFiles(dirPath, filesDict)
     # =================================
 
-    processor = ProcessingStrategy01(dfs, u.dates2Convert, u.filesDict)
+    processor = ProcessingStrategy01(dfs, u.timeVariables2Convert, u.filesDict)
     df = processor.process()
     df.to_csv(pl.Path(dirPath)/f'po2_fo2_data{u.timeStampStr}.csv')
 

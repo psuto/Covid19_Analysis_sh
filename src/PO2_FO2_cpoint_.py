@@ -22,6 +22,7 @@ if __name__ == "__main__":
         idsSel = ids[lb:ub]
         dfPO2_FiO2 = df['pO2_FiO2']
         dfSelPO2FO2 = dfPO2_FiO2[df['STUDY_ID'] == ids[0]
+
                                  ]
         # ==============================================
         Q, P, Pcp = offcd.offline_changepoint_detection(dfSelPO2FO2, partial(offcd.const_prior, l=(len(df) + 1)),

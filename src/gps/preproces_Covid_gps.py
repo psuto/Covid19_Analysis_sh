@@ -22,11 +22,7 @@ class ProcessingCovid4GPsContv01(CovidDataPreProcessing):
         for studyId in demographics_df.loc[:, 'STUDY_ID'].unique():
             nDict[studyId] = self.assign_demographics()
             # nDict[studyId] =
-
             pass
-
-
-
         print()
 
     def preprocessAndSave(self,dataFrames):
@@ -91,7 +87,106 @@ class ProcessingCovid4GPsContv01(CovidDataPreProcessing):
         return dict_
 
     @staticmethod
-    def compute_ICU_days(dict_, events_df, STUDY_ID):
+    def computeHospitalDays(events_df, STUDY_ID, current_date='2020-06-05'):
+        """
+        PS
+        Function computes the number of days spent in the hospital and in ICU
+
+        events_hosp_days are based on REACT_Events.csv and columns START_DATETIME and END_DATETIME where
+        the EVENT_TYPE == ADMISSION
+
+        # dict_ - a dictionary corresponding to a single patient
+        # events_df - a dataframe with events info directly from the csv file (datetime formating needed first)
+        # STUDY_ID - patient id
+        """
+        hospidaDays = 0
+        hosp_start = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ADMISSION'), 'START_DATETIME'].values
+        hosp_end = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ADMISSION'), 'END_DATETIME'].values
+        try:
+            hospidaDays = int((hosp_end - hosp_start) / np.timedelta64(1, 'D'))
+        except:
+            pass
+        return hospidaDays
+
+    @staticmethod
+    def computeICUDays(events_df, STUDY_ID, current_date='2020-06-05'):
+        """
+        PS
+        Function computes the number of days spent in the hospital and in ICU
+
+        events_hosp_days are based on REACT_Events.csv and columns START_DATETIME and END_DATETIME where
+        the EVENT_TYPE == ADMISSION
+
+        # dict_ - a dictionary corresponding to a single patient
+        # events_df - a dataframe with events info directly from the csv file (datetime formating needed first)
+        # STUDY_ID - patient id
+        """
+        numDays = 0
+        start_ = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ITU'), 'START_DATETIME'].values
+        end_ = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ITU'), 'END_DATETIME'].values
+        try:
+            numDays = int((end_ - start_) / np.timedelta64(1, 'D'))
+        except:
+            pass
+        return numDays
+
+    @staticmethod
+    def compute_days_in_hospital(dict_, current_date='2020-06-05'):
+
+        # dict_ - a dictionary of given patient, with ADM_DATETIME and DISCHARGE_DATE in 'datetime64[s]' format
+        # current_date - if patient has not been discharged, it calculates the number of days from ADMISSION to 'current date'
+
+        ## function computes the number of days from ADM_DATETIME to DISCHARGE_DATE
+        ## it outputs the number of days, and TRUE/FALSE if the patient has been discharged up to 'current date'
+
+        # Has the patient been discharged?
+        discharged = ~np.isnat(dict_['DISCHARGE_DATE'])
+
+        if discharged:
+            #        print('discharged')
+
+            days_in_hospital = int(
+                (dict_['DISCHARGE_DATE'] - dict_['ADM_DATETIME']).astype('timedelta64[D]') / np.timedelta64(1, 'D'))
+
+        elif ~discharged:
+            #       print('still at hospital')
+            days_in_hospital = (np.array(current_date, dtype=np.datetime64) - dict_['ADM_DATETIME']).astype(
+                'timedelta64[D]') / np.timedelta64(1, 'D')
+
+        return days_in_hospital, int(discharged)
+
+
+    @staticmethod
+    def compute_ICU_days( events_df, STUDY_ID):
+        # events_df - a dataframe with events info directly from the csv file (datetime formating needed first)
+        # STUDY_ID - patient id
+        ## Function computes the number of days spent in  in ICU
+        ## ICU_days are based on REACT_Events.csv and columns START_DATETIME and END_DATETIME where the EVENT_TYPE == ITU
+        icuDays = 0
+
+
+        ICU_start = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ITU'), 'START_DATETIME'].values
+        ICU_end = events_df.loc[
+            (events_df['STUDY_ID'] == STUDY_ID) & (events_df['EVENT_TYPE'] == 'ITU'), 'END_DATETIME'].values
+
+        if(ICU_end is None | len(ICU_end)==0):
+            pass
+
+        try:
+            icuDays = int((ICU_end - ICU_start) / np.timedelta64(1, 'D'))
+        except:
+            pass
+        if (icuDays<=0):
+            pass
+        return icuDays
+
+    @staticmethod
+    def compute_ICU_days_Orig(dict_, events_df, STUDY_ID):
 
         # dict_ - a dictionary corresponding to a single patient
         # events_df - a dataframe with events info directly from the csv file (datetime formating needed first)
@@ -123,29 +218,49 @@ class ProcessingCovid4GPsContv01(CovidDataPreProcessing):
         return dict_
 
     @staticmethod
-    def compute_days_in_hospital(dict_, current_date='2020-06-05'):
+    def add2EventsICUdays(eventDF):
+        # 'STUDY_ID'
+        pass
+        icuDays = 0
+        pass
+        eventDF['ICU_Days'] = None
+        #['END_DATETIME', 'EVENT_TYPE', 'START_DATETIME', 'STUDY_ID', 'START_DATE', 'START_TIME', 'END_DATE', 'END_TIME', 'ICU_Days']
+        uniqueIDS = eventDF.loc[:,'STUDY_ID'].unique()
+        for id in uniqueIDS:
+            icuDays = ProcessingCovid4GPsContv01.computeICUDay(eventDF,id)
+            eventDF.loc[eventDF['STUDY_ID']==id,'ICU_Days'] = icuDays
+            return eventDF
 
-        # dict_ - a dictionary of given patient, with ADM_DATETIME and DISCHARGE_DATE in 'datetime64[s]' format
-        # current_date - if patient has not been discharged, it calculates the number of days from ADMISSION to 'current date'
+    @staticmethod
+    def add2EventsHospitalDays(eventDF):
+        # 'STUDY_ID'
+        pass
+        hospDays = 0
+        pass
+        eventDF['Hospital_Days'] = None
+        # ['END_DATETIME', 'EVENT_TYPE', 'START_DATETIME', 'STUDY_ID', 'START_DATE', 'START_TIME', 'END_DATE', 'END_TIME', 'ICU_Days']
+        uniqueIDS = eventDF.loc[:, 'STUDY_ID'].unique()
+        for id in uniqueIDS:
+            hospDays = ProcessingCovid4GPsContv01.computeHospitalDays(eventDF, id)
+            eventDF.loc[eventDF['STUDY_ID'] == id, 'Hospital_Days'] = hospDays
+        return eventDF
 
-        ## function computes the number of days from ADM_DATETIME to DISCHARGE_DATE
-        ## it outputs the number of days, and TRUE/FALSE if the patient has been discharged up to 'current date'
-
-        # Has the patient been discharged?
-        discharged = ~np.isnat(dict_['DISCHARGE_DATE'])
-
-        if discharged:
-            #        print('discharged')
-
-            days_in_hospital = int(
-                (dict_['DISCHARGE_DATE'] - dict_['ADM_DATETIME']).astype('timedelta64[D]') / np.timedelta64(1, 'D'))
-
-        elif ~discharged:
-            #       print('still at hospital')
-            days_in_hospital = (np.array(current_date, dtype=np.datetime64) - dict_['ADM_DATETIME']).astype(
-                'timedelta64[D]') / np.timedelta64(1, 'D')
-
-        return days_in_hospital, int(discharged)
+    @staticmethod
+    def add2EventsICUandHospitalDays(eventDF):
+        # 'STUDY_ID'
+        pass
+        hospDays = 0
+        pass
+        eventDF['Hospital_Days'] = None
+        eventDF['ICU_Days'] = None
+        # ['END_DATETIME', 'EVENT_TYPE', 'START_DATETIME', 'STUDY_ID', 'START_DATE', 'START_TIME', 'END_DATE', 'END_TIME', 'ICU_Days']
+        uniqueIDS = eventDF.loc[:, 'STUDY_ID'].unique()
+        for id in uniqueIDS:
+            hospDays = ProcessingCovid4GPsContv01.computeHospitalDays(eventDF, id)
+            eventDF.loc[eventDF['STUDY_ID'] == id, 'Hospital_Days'] = hospDays
+            icuDays = ProcessingCovid4GPsContv01.computeICUDays(eventDF, id)
+            eventDF.loc[eventDF['STUDY_ID'] == id, 'ICU_Days'] = icuDays
+        return eventDF
 
     def addDemographics(self, demographics_df, nDict):
         for studyId in demographics_df.loc[:,'STUDY_ID'].unique():
@@ -159,12 +274,8 @@ class ProcessingCovid4GPsContv01(CovidDataPreProcessing):
 def main():
     dirPath = f"C:\work\dev\dECMT_src\data_all\COVID19_Data"
     # exec('a=None')
-    filesDict = {'demographics_df':'REACT_COVID_Demographics_20200506.csv',
-                 'events_df':'REACT_Events.csv',
-                 'lab_results_df':'REACT_LabResults.csv','pharmacy_data_df':'REACT_LabResults.csv',
-                 'covid_test_df':'REACT_UHSCOVIDTest_processed.csv',
-                 'vitalsigns_cat_df':'REACT_Vitalsigns_Categorical.csv',
-                 'vitalsigns_num_df':'REACT_Vitalsigns_Numeric.csv'}
+    filesDict = u.CovidDataPreProcessing.filesDict
+
     # eval('a'+'=None')
     dfs = u.readFiles(dirPath,filesDict)
     #  ************************************
