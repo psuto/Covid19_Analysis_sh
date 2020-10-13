@@ -57,12 +57,11 @@ def main():
 
     studyid_air_ventilator_dic = dict()
 
-    for studyid, air_vent in \
-    df_REACT_Vitalsigns_Categorical[df_REACT_Vitalsigns_Categorical.VALUE.isin(air_ventilator_degree_dic)][
-        ['STUDY_ID', 'VALUE']].values:
-        if studyid not in studyid_air_ventilator_dic or studyid_air_ventilator_dic[studyid] < air_ventilator_degree_dic[
-            air_vent]:
-            studyid_air_ventilator_dic[studyid] = air_ventilator_degree_dic[air_vent]
+    # for studyid, air_vent in     df_REACT_Vitalsigns_Categorical[df_REACT_Vitalsigns_Categorical.VALUE.isin(air_ventilator_degree_dic)][
+    #     ['STUDY_ID', 'VALUE']].values:
+    #     if studyid not in studyid_air_ventilator_dic or studyid_air_ventilator_dic[studyid] < air_ventilator_degree_dic[
+    #         air_vent]:
+    #         studyid_air_ventilator_dic[studyid] = air_ventilator_degree_dic[air_vent]
 
     df_studyid_air_vent = pd.DataFrame(
         data=[[key, studyid_air_ventilator_dic[key]] for key in studyid_air_ventilator_dic],
